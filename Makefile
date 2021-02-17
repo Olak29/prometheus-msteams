@@ -20,6 +20,7 @@ LDFLAGS = -ldflags "-X $(VERSION_PKG).VERSION=$(VERSION) -X $(VERSION_PKG).COMMI
 
 DOCKER_RUN_OPTS ?=
 DOCKER_RUN_ARG ?=
+RUN_ARGS ?=
 
 # docker
 DOCKER_QUAY_REPO=quay.io/prometheusmsteams/prometheus-msteams
@@ -27,7 +28,7 @@ DOCKER_QUAY_USER=prometheusmsteams+ci
 DOCKER_HUB_REPO=prometheusmsteams/prometheus-msteams
 
 # Build the project
-all: clean dep create_bin_dir linux darwin
+all: clean dep create_bin_dir linux darwin windows
 	cd $(BINDIR) && shasum -a 256 ** > shasum256.txt
 
 create_bin_dir:
@@ -42,6 +43,9 @@ linux:
 
 darwin:
 	CGO_ENABLED=0 GOOS=darwin GOARCH=$(GOARCH) $(GO) build $(LDFLAGS) -o $(BINDIR)/$(BINARY)-darwin-$(GOARCH) ./cmd/server
+
+windows:
+	CGO_ENABLED=0 GOOS=windows GOARCH=$(GOARCH) $(GO) build $(LDFLAGS) -o $(BINDIR)/$(BINARY)-windows-$(GOARCH).exe ./cmd/server
 
 docker:
 	docker build -t $(DOCKER_HUB_REPO):$(VERSION) .
@@ -63,8 +67,11 @@ docker-tag-latest:
 docker-hub-push: docker
 	docker push $(DOCKER_HUB_REPO):$(VERSION)
 
-run-osx: dep darwin
-	bin/prometheus-msteams-darwin-amd64 server $(RUN_ARGS)
+run:
+	go run cmd/server/main.go -http-addr=localhost:2000 $(RUN_ARGS)
+
+run-test-config:
+	go run cmd/server/main.go -http-addr=localhost:2000 -config-file ./test-connectors.yaml
 
 fmt:
 	gofmt -w $(GOFMT_FILES)

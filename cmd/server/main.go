@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/go-retryablehttp"
+
 	ocprometheus "contrib.go.opencensus.io/exporter/prometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/prometheus-msteams/prometheus-msteams/pkg/card"
@@ -25,7 +27,7 @@ import (
 	"go.opencensus.io/tag"
 	"go.opencensus.io/trace"
 
-	_ "net/http/pprof"
+	_ "net/http/pprof" //nolint: gosec
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -51,7 +53,7 @@ type ConnectorWithCustomTemplate struct {
 	EscapeUnderscores bool   `yaml:"escape_underscores"`
 }
 
-func parseTeamsConfigFile(f string, logger log.Logger) (PromTeamsConfig, error) {
+func parseTeamsConfigFile(f string) (PromTeamsConfig, error) {
 	b, err := ioutil.ReadFile(f)
 	if err != nil {
 		return PromTeamsConfig{}, err
@@ -63,9 +65,10 @@ func parseTeamsConfigFile(f string, logger log.Logger) (PromTeamsConfig, error) 
 	return tc, nil
 }
 
-func main() {
+func main() { //nolint: funlen
 	var (
 		fs                            = flag.NewFlagSet("prometheus-msteams", flag.ExitOnError)
+		promVersion                   = fs.Bool("version", false, "Print the version")
 		logFormat                     = fs.String("log-format", "json", "json|fmt")
 		debugLogs                     = fs.Bool("debug", true, "Set log level to debug mode.")
 		jaegerTrace                   = fs.Bool("jaeger-trace", false, "Send traces to Jaeger.")
@@ -79,11 +82,17 @@ func main() {
 		httpClientIdleConnTimeout     = fs.Duration("idle-conn-timeout", 90*time.Second, "The HTTP client idle connection timeout duration.")
 		httpClientTLSHandshakeTimeout = fs.Duration("tls-handshake-timeout", 30*time.Second, "The HTTP client TLS handshake timeout.")
 		httpClientMaxIdleConn         = fs.Int("max-idle-conns", 100, "The HTTP client maximum number of idle connections")
+		retryMax                      = fs.Int("max-retry-count", 3, "The retry maximum for sending requests to the webhook")
 	)
 
 	if err := ff.Parse(fs, os.Args[1:], ff.WithEnvVarNoPrefix()); err != nil {
 		fmt.Fprint(os.Stderr, err.Error())
 		os.Exit(1)
+	}
+
+	if *promVersion {
+		fmt.Println(version.VERSION)
+		os.Exit(0)
 	}
 
 	// Logger.
@@ -109,6 +118,7 @@ func main() {
 	// Tracer.
 	if *jaegerTrace {
 		logger.Log("message", "jaeger tracing enabled")
+
 		je, err := jaeger.NewExporter(
 			jaeger.Options{
 				AgentEndpoint: *jaegerAgentAddr,
@@ -119,13 +129,13 @@ func main() {
 			logger.Log("err", err)
 			os.Exit(1)
 		}
+
 		trace.RegisterExporter(je)
 		trace.ApplyConfig(
 			trace.Config{
 				DefaultSampler: trace.AlwaysSample(),
 			},
 		)
-
 	}
 
 	// Prepare the Teams config.
@@ -136,7 +146,7 @@ func main() {
 
 	// Parse the config file if defined.
 	if *configFile != "" {
-		tc, err = parseTeamsConfigFile(*configFile, logger)
+		tc, err = parseTeamsConfigFile(*configFile)
 		if err != nil {
 			logger.Log("err", err)
 			os.Exit(1)
@@ -162,7 +172,9 @@ func main() {
 	}
 
 	// Teams HTTP client setup.
-	httpClient := &http.Client{
+	retryClient := retryablehttp.NewClient()
+	retryClient.RetryMax = *retryMax
+	retryClient.HTTPClient = &http.Client{
 		Transport: &ochttp.Transport{
 			Base: &http.Transport{
 				Proxy: http.ProxyFromEnvironment,
@@ -177,6 +189,8 @@ func main() {
 			},
 		},
 	}
+
+	httpClient := retryClient.StandardClient()
 
 	var routes []transport.Route
 
@@ -223,10 +237,13 @@ func main() {
 		}
 
 		var converter card.Converter
-		tmpl, err := card.ParseTemplateFile(*templateFile)
+		tmpl, err := card.ParseTemplateFile(c.TemplateFile)
 		if err != nil {
 			logger.Log("err", err)
+			os.Exit(1)
 		}
+
+		// converter = card.NewTemplatedCardCreator(tmpl, c.EscapeUnderscores, c.DisableGrouping)
 		converter = card.NewTemplatedCardCreator(tmpl, c.EscapeUnderscores)
 		converter = card.NewCreatorLoggingMiddleware(
 			log.With(
@@ -319,28 +336,28 @@ func ocviews() []*view.View {
 	}
 	return []*view.View{
 		// HTTP client metrics.
-		&view.View{
+		{
 			Name:        "http/client/sent_bytes",
 			Measure:     ochttp.ClientSentBytes,
 			Aggregation: view.Distribution(1024, 2048, 4096, 16384, 65536, 262144, 1048576, 4194304),
 			Description: "Total bytes sent in request body (not including headers), by HTTP method and response status",
 			TagKeys:     clientKeys,
 		},
-		&view.View{
+		{
 			Name:        "http/client/received_bytes",
 			Measure:     ochttp.ClientReceivedBytes,
 			Aggregation: view.Distribution(1024, 2048, 4096, 16384, 65536, 262144, 1048576, 4194304),
 			Description: "Total bytes received in response bodies (not including headers but including error responses with bodies), by HTTP method and response status",
 			TagKeys:     clientKeys,
 		},
-		&view.View{
+		{
 			Name:        "http/client/roundtrip_latency",
 			Measure:     ochttp.ClientRoundtripLatency,
 			Aggregation: view.Distribution(1, 2, 3, 4, 5, 6, 8, 10, 13, 16, 20, 25, 30),
 			Description: "End-to-end latency, by HTTP method and response status",
 			TagKeys:     clientKeys,
 		},
-		&view.View{
+		{
 			Name:        "http/client/completed_count",
 			Measure:     ochttp.ClientRoundtripLatency,
 			Aggregation: view.Count(),
@@ -348,28 +365,28 @@ func ocviews() []*view.View {
 			TagKeys:     clientKeys,
 		},
 		// HTTP server metrics.
-		&view.View{
+		{
 			Name:        "http/server/request_count",
 			Description: "Count of HTTP requests started",
 			Measure:     ochttp.ServerRequestCount,
 			Aggregation: view.Count(),
 			TagKeys:     serverKeys,
 		},
-		&view.View{
+		{
 			Name:        "http/server/request_bytes",
 			Description: "Size distribution of HTTP request body",
 			Measure:     ochttp.ServerRequestBytes,
 			Aggregation: view.Distribution(1024, 2048, 4096, 16384, 65536, 262144, 1048576, 4194304),
 			TagKeys:     serverKeys,
 		},
-		&view.View{
+		{
 			Name:        "http/server/response_bytes",
 			Description: "Size distribution of HTTP response body",
 			Measure:     ochttp.ServerResponseBytes,
 			Aggregation: view.Distribution(1024, 2048, 4096, 16384, 65536, 262144, 1048576, 4194304),
 			TagKeys:     serverKeys,
 		},
-		&view.View{
+		{
 			Name:        "http/server/latency",
 			Description: "Latency distribution of HTTP requests",
 			Measure:     ochttp.ServerLatency,

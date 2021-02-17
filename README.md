@@ -1,4 +1,3 @@
-![Docker Hub Pulls](https://img.shields.io/docker/pulls/bzon/prometheus-msteams.svg)
 [![GitHub tag](https://img.shields.io/github/tag/prometheus-msteams/prometheus-msteams.svg)](https://github.com/prometheus-msteams/prometheus-msteams/releases/)
 [![Build Status](https://travis-ci.org/prometheus-msteams/prometheus-msteams.svg?branch=master)](https://travis-ci.org/prometheus-msteams/prometheus-msteams)
 [![codecov](https://codecov.io/gh/prometheus-msteams/prometheus-msteams/branch/master/graph/badge.svg)](https://codecov.io/gh/prometheus-msteams/prometheus-msteams)
@@ -8,7 +7,7 @@
 
 # Overview
 
-A lightweight Go Web Server that receives __POST__ alert messages from __Prometheus Alert Manager__ and sends it to a __Microsoft Teams Channel__ using an incoming webhook url. How light? See the [docker image](https://hub.docker.com/r/prometheus-msteams/prometheus-msteams/tags/)!
+A lightweight Go Web Server that receives __POST__ alert messages from __Prometheus Alert Manager__ and sends it to a __Microsoft Teams Channel__ using an incoming webhook url. How light? See the [docker image](https://quay.io/repository/prometheusmsteams/prometheus-msteams?tab=tags)!
 
 ## Synopsis
 
@@ -20,21 +19,23 @@ Why use [Go](https://golang.org/)? A Go binary is statically compiled unlike the
 
 ## Table of Contents
 
-
 <!-- vim-markdown-toc GFM -->
 
-* [Getting Started (Quickstart)](#getting-started-quickstart)
-  * [Installation](#installation)
-  * [Setting up Prometheus Alert Manager](#setting-up-prometheus-alert-manager)
-  * [Simulating a Prometheus Alerts to Teams Channel](#simulating-a-prometheus-alerts-to-teams-channel)
-* [Sending Alerts to Multiple Teams Channel](#sending-alerts-to-multiple-teams-channel)
-  * [Creating the Configuration File](#creating-the-configuration-file)
-  * [Setting up Prometheus Alert Manager](#setting-up-prometheus-alert-manager-1)
-* [Customise Messages to MS Teams](#customise-messages-to-ms-teams)
-  * [Customise Messages per MS Teams Channel](#customise-messages-per-ms-teams-channel)
-* [Configuration](#configuration)
-* [Kubernetes Deployment](#kubernetes-deployment)
-* [Contributing](#contributing)
+- [Synopsis](#synopsis)
+- [Why choose Go? Not Python or Ruby or Node?](#why-choose-go-not-python-or-ruby-or-node)
+- [Getting Started (Quickstart)](#getting-started-quickstart)
+  - [Installation](#installation)
+  - [Setting up Prometheus Alert Manager](#setting-up-prometheus-alert-manager)
+  - [Simulating a Prometheus Alerts to Teams Channel](#simulating-a-prometheus-alerts-to-teams-channel)
+- [Sending Alerts to Multiple Teams Channel](#sending-alerts-to-multiple-teams-channel)
+  - [Creating the Configuration File](#creating-the-configuration-file)
+  - [Setting up Prometheus Alert Manager](#setting-up-prometheus-alert-manager-1)
+- [Customise Messages to MS Teams](#customise-messages-to-ms-teams)
+  - [Customise Messages per MS Teams Channel](#customise-messages-per-ms-teams-channel)
+  - [Use Template functions to improve your templates](#use-template-functions-to-improve-your-templates)
+- [Configuration](#configuration)
+- [Kubernetes Deployment](#kubernetes-deployment)
+- [Contributing](#contributing)
 
 <!-- vim-markdown-toc -->
 
@@ -166,7 +167,7 @@ docker run -d -p 2000:2000 \
     --name="promteams" \
     -v /tmp/config.yml:/tmp/config.yml \
     -e CONFIG_FILE="/tmp/config.yml" \
-    docker.io/prometheus-msteams/prometheus-msteams:v1.1.5
+    quay.io/prometheusmsteams/prometheus-msteams:v1.4.1
 ```
 
 When running as a binary, use the __-config-file__ flag.
@@ -227,7 +228,7 @@ receivers:
 
 ## Customise Messages to MS Teams
 
-This application uses a [default Microsoft Teams Message card template](./default-message-card.tmpl) to convert incoming Prometheus alerts to teams message cards. This template can be customised. Simply create a new file that you want to use as your custom template. It uses the [Go Templating Engine](https://golang.org/pkg/text/template/) and especially the [Prometheus Alertmanager Notification Template](https://prometheus.io/docs/alerting/notifications/). Also see the [Office 365 Connector Card Reference](https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/cards/cards-reference#office-365-connector-card) and some [examples](./examples) for more information to construct your template. Apart from that, you can use the [Message Card Playground](https://messagecardplayground.azurewebsites.net/) to form the basic structure of your card.
+This application uses a [default Microsoft Teams Message card template](./default-message-card.tmpl) to convert incoming Prometheus alerts to teams message cards. This template can be customised. Simply create a new file that you want to use as your custom template. It uses the [Go Templating Engine](https://golang.org/pkg/text/template/) and the [Prometheus Alertmanager Notification Template](https://prometheus.io/docs/alerting/notifications/). Also see the [Office 365 Connector Card Reference](https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/cards/cards-reference#office-365-connector-card) and some [examples](./examples) for more information to construct your template. Apart from that, you can use the [Message Card Playground](https://messagecardplayground.azurewebsites.net/) to form the basic structure of your card.
 
 When running as a docker container, mount the template file in the container and set the __TEMPLATE_FILE__ environment variable.
 
@@ -266,6 +267,13 @@ connectors_with_custom_templates:
   escape_underscores: true # get the effect of -auto-escape-underscores.
 ```
 
+### Use Template functions to improve your templates
+
+You can use
+
+* all of the existing [sprig template functions](http://masterminds.github.io/sprig/) except the [OS functions env and expandenv](http://masterminds.github.io/sprig/os.html)
+* some well known functions from Helm: `toToml`, `toYaml`, `fromYaml`, `toJson`, `fromJson`
+
 ## Configuration
 
 All configuration from flags can be overwritten using environment variables.
@@ -300,6 +308,8 @@ Usage of prometheus-msteams:
     	The Microsoft Teams Message Card template file. (default "./default-message-card.tmpl")
   -tls-handshake-timeout duration
     	The HTTP client TLS handshake timeout. (default 30s)
+  -max-retry-count int
+      The retry maximum for sending requests to the webhook. (default 3)
 ```
 
 ## Kubernetes Deployment
