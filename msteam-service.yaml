@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-msteams
+  labels:
+    app: prometheus-msteams
+spec:
+  type: NodePort
+  ports:
+    - port: 2000
+      nodePort: 32776
+      name: http
+      targetPort: http
+  selector:
+    name: prometheus-msteams

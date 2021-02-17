@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: msteam-ingress
+  labels:
+    app: prometheus-msteams
+    chart: prometheus-msteams-0.4.3
+    heritage: Tiller
+    release: ops
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 20m
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  rules:
+  - host: "tst-docapp.berkley-bts.com"
+    http:
+      paths:
+      - path: /prometheus-msteams
+        backend:
+          serviceName: prometheus-msteams
+          servicePort: 2000

@@ -1,0 +1,9 @@
+{
+  "title": "ALERT TRIGGER: ${N=SwisEntity;M=Caption} is currently ${N=SwisEntity;M=Status}",
+  "text": "DEVICE: [${N=SwisEntity;M=Caption}](${N=SwisEntity;M=DetailsUrl})
+  IP ADDRESS: ${N=SwisEntity;M=IP_Address}
+  VENDOR: ${N=SwisEntity;M=Vendor}
+  MODEL: ${N=SwisEntity;M=MachineType}
+  [ALERT DETAILS](${N=Alerting;M=AlertDetailsUrl})
+  [ACKNOWLEDGE THIS ALERT](${N=Alerting;M=AcknowledgeLink})"
+}

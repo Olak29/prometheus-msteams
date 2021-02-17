@@ -1,0 +1,18 @@
+---
+replicaCount: 2
+image:
+  repository: quay.io/prometheusmsteams/prometheus-msteams
+  tag: v1.3.2
+connectors:
+- prometheus-alerts : "https://outlook.office.com/webhook/f56da971-2c68-436c-864f-178d5e623dd2@5f2f4ea8-f1ba-4234-898c-c4ae4a4c70bb/IncomingWebhook/8969cbcd2fb1494c9d861bcc019ffe21/b003c2cf-83af-4028-acb6-86f1b05a8e51"
+service:
+  type: NodePort
+  port: 2000
+
+metrics:
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: ops # change this accordingly
+    scrapeInterval: 30s
+
