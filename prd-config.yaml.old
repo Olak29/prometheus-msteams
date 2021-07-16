@@ -1,4 +1,4 @@
----
+
 replicaCount: 2
 image:
   repository: quay.io/prometheusmsteams/prometheus-msteams

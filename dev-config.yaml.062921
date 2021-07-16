@@ -2,21 +2,19 @@
 replicaCount: 2
 image:
   repository: quay.io/prometheusmsteams/prometheus-msteams
-  tag: v1.5.0
-connectorsWithCustomTemplates:
+  tag: v1.3.5
+connectors_with_custom_templates:
 - request_path: /prometheus-msteams
+  template_file: ./default-message-card.tmpl
   webhook_url: "https://berkleycloud.webhook.office.com/webhookb2/f56da971-2c68-436c-864f-178d5e623dd2@5f2f4ea8-f1ba-4234-898c-c4ae4a4c70bb/IncomingWebhook/8969cbcd2fb1494c9d861bcc019ffe21/b003c2cf-83af-4028-acb6-86f1b05a8e51" 
-  template_file: "card.tmpl"
-  escape_underscores: true # get the effect of -auto-escape-underscores.
 - request_path: /prometheus-alerts
+  template_file: ./default-message-card.tmpl
   webhook_url: "https://berkleycloud.webhook.office.com/webhookb2/f56da971-2c68-436c-864f-178d5e623dd2@5f2f4ea8-f1ba-4234-898c-c4ae4a4c70bb/IncomingWebhook/8969cbcd2fb1494c9d861bcc019ffe21/b003c2cf-83af-4028-acb6-86f1b05a8e51"
   escape_underscores: true # get the effect of -auto-escape-underscores.
-  template_file: "card.tmpl"
 - request_path: /Solarwinds
-  webhook_url: "https://berkleycloud.webhook.office.com/webhookb2/293729ae-34f9-4995-97c3-deb3b867af42@5f2f4ea8-f1ba-4234-898c-c4ae4a4c70bb/IncomingWebhook/d579c66148ae4c1798cd75df4c9461d0/e9517f7e-8c30-45b0-b64f-03495ce7c56d"
+  template_file: ./default-message-card.tmpl
+  webhook_url: "https://berkleycloud.webhook.office.com/webhookb2/293729ae-34f9-4995-97c3-deb3b867af42@5f2f4ea8-f1ba-4234-898c-c4ae4a4c70bb/IncomingWebhook/cbdccf1e00f84e02bfca476110f88454/e9517f7e-8c30-45b0-b64f-03495ce7c56d"
   escape_underscores: true # get the effect of -auto-escape-underscores.
-  template_file: "card.tmpl"
-
 service:
   type: NodePort
   port: 2000

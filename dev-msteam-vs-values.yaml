@@ -1,0 +1,21 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: msteam-vs
+  namespace: monitoring
+spec:
+  hosts:
+  - "dev-docapp.berkley-bts.com"
+  gateways:
+  - docapp-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /prometheus-msteams
+
+     
+    route:
+    - destination:
+        host: prometheus-msteams.monitoring.svc.cluster.local 
+        port:
+          number: 2000
