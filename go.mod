@@ -25,7 +25,7 @@ require (
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/josephburnett/jd v0.0.0-20191228205456-aa1a7c66b42f
 	github.com/jpillora/backoff v1.0.0 // indirect
-	github.com/labstack/echo/v4 v4.1.14
+	github.com/labstack/echo/v4 v4.9.0
 	github.com/miekg/dns v1.1.27 // indirect
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
@@ -36,8 +36,6 @@ require (
 	github.com/prometheus/client_golang v1.4.0
 	github.com/satori/go.uuid v1.2.0 // indirect
 	go.opencensus.io v0.22.2
-	golang.org/x/crypto v0.0.0-20200117160349-530e935923ad // indirect
-	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa // indirect
 	golang.org/x/tools v0.0.0-20200117065230-39095c1d176c // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	k8s.io/apimachinery v0.18.2 // indirect
